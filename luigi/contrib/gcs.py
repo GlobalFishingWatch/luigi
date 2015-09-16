@@ -370,7 +370,8 @@ class GCSClient(luigi.target.FileSystem):
 class _DeleteOnCloseFile(io.FileIO):
     def close(self):
         super(_DeleteOnCloseFile, self).close()
-        os.remove(self.name)
+        if os.path.exists(self.name):
+            os.remove(self.name)
 
     def readable(self):
         return True
