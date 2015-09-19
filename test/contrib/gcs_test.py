@@ -153,6 +153,17 @@ class GCSClientTest(_GCSBaseTestCase):
             self.assertTrue(self.client.exists(bucket_url('test_put_file')))
             self.assertEquals(big, self.client.download(bucket_url('test_put_file')).read())
 
+    def test_multiprocessing(self):
+        from multiprocessing import Process
+        p1 = Process(target=self.test_exists)
+        p2 = Process(target=self.test_exists)
+
+        p1.start()
+        p1.join()
+
+        p2.start()
+        p2.join()
+
 
 @attr('gcloud')
 class GCSTargetTest(_GCSBaseTestCase, FileSystemTargetTestMixin):
