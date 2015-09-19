@@ -27,6 +27,7 @@ try:
     from urlparse import urlsplit
 except ImportError:
     from urllib.parse import urlsplit
+import multiprocessing
 
 import luigi.target
 from luigi import six
@@ -84,6 +85,7 @@ class InvalidDeleteException(luigi.target.FileSystemException):
     pass
 
 
+
 class GCSClient(luigi.target.FileSystem):
     """An implementation of a FileSystem over Google Cloud Storage.
 
@@ -107,18 +109,28 @@ class GCSClient(luigi.target.FileSystem):
       contents of this file (currently found at https://www.googleapis.com/discovery/v1/apis/storage/v1/rest )
       as the ``descriptor`` argument.
     """
+
+
     def __init__(self, oauth_credentials=None, descriptor='', http_=None,
                  chunksize=CHUNKSIZE):
         self.chunksize = chunksize
-        http_ = http_ or httplib2.Http()
+        self.connection_info = (oauth_credentials, descriptor, http_)
+        self.client_pool = {}
 
-        if not oauth_credentials:
-            oauth_credentials = oauth2client.client.GoogleCredentials.get_application_default()
-
-        if descriptor:
-            self.client = discovery.build_from_document(descriptor, credentials=oauth_credentials, http=http_)
-        else:
-            self.client = discovery.build('storage', 'v1', credentials=oauth_credentials, http=http_)
+    @property
+    def client(self):
+        pid = multiprocessing.current_process().pid
+        client = self.client_pool.get(pid)
+        if not client:
+            oauth_credentials, descriptor, http_ = self.connection_info
+            if not oauth_credentials:
+                oauth_credentials = oauth2client.client.GoogleCredentials.get_application_default()
+            if descriptor:
+                client = discovery.build_from_document(descriptor, credentials=oauth_credentials, http=http_)
+            else:
+                client = discovery.build('storage', 'v1', credentials=oauth_credentials, http=http_)
+            self.client_pool[pid] = client
+        return client
 
     def _path_to_bucket_and_key(self, path):
         (scheme, netloc, path, _, _) = urlsplit(path)
