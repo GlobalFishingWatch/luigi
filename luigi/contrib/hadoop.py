@@ -482,6 +482,8 @@ class HadoopJobRunner(JobRunner):
 
         arglist += self.streaming_args
 
+        arglist += job.jobargs() or []
+
         arglist += ['-mapper', map_cmd]
         if job.combiner != NotImplemented:
             arglist += ['-combiner', cmb_cmd]
@@ -646,6 +648,9 @@ class BaseHadoopJobTask(luigi.Task):
             elif scheduler_type == 'capacity':
                 jcs.append('mapred.job.queue.name=%s' % pool)
         return jcs
+
+    def jobargs(self):
+        return []
 
     def init_local(self):
         """
