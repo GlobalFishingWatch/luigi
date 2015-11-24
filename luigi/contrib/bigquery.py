@@ -335,6 +335,10 @@ class BigqueryLoadTask(luigi.Task):
         """Source data which should be in GCS."""
         return [x.path for x in luigi.task.flatten(self.input())]
 
+    @property
+    def ignore_unknown_values(self):
+        return False
+
     def run(self):
         output = self.output()
         assert isinstance(output, BigqueryTarget), 'Output should be a bigquery target, not %s' % (output)
@@ -357,6 +361,7 @@ class BigqueryLoadTask(luigi.Task):
                     'writeDisposition': self.write_disposition,
                     'sourceUris': source_uris,
                     'maxBadRecords': self.max_bad_records,
+                    'ignoreUnknownValues': self.ignore_unknown_values
                 }
             }
         }
